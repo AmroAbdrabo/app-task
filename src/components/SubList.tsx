@@ -57,6 +57,8 @@ function SubList() {
   const handleDelete = (id:number) => {
     // removes it from the subscriptions state
     setSubscriptions(subscriptions.filter(sub => sub.id !== id));
+    dispatch(deleteContract(id))
+
   };
 
   return (
@@ -88,6 +90,14 @@ function SubList() {
             <FormControl mt={4}>
               <FormLabel>Cost</FormLabel>
               <Input placeholder="Cost" value={currentSubscription?.cost || ''} onChange={(e) => handleChange(e, 'cost')} />
+            </FormControl>
+            <FormControl mt={4}>
+              <FormLabel>Duration</FormLabel>
+              <Input placeholder="Duration" value={currentSubscription?.duration || ''} onChange={(e) => handleChange(e, 'duration')} />
+            </FormControl>
+            <FormControl mt={4}>
+              <FormLabel>Cycle</FormLabel>
+              <Input placeholder="Payment Cycle" value={currentSubscription?.cycle || ''} onChange={(e) => handleChange(e, 'cycle')} />
             </FormControl>
           </ModalBody>
           <ModalFooter>
