@@ -2,11 +2,15 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from 'axios';
 
+const port = 5000; // Port number of Flask API (make sure the API is running on this port, locally)
+const url = `http://localhost:${port}/api/contracts`;
+
 interface Contract {
-    id: string;
+    id: number;
     name: string;
     cost: number; // Monthly cost
     duration: number; // Duration in months
+    cycle: number;
 }
 
 interface ContractsState {
@@ -18,11 +22,16 @@ interface ContractsState {
 }
 
 const initialState: ContractsState = {
-    contracts: [],
+    contracts: [
+        { id: 1, name: 'Rent', cost: 80, duration: 12, cycle: 50 },
+        { id: 2, name: 'Electricity', cost: 60, duration: 12, cycle: 10 },
+        { id: 3, name: 'Water Supply', cost: 50, duration: 12, cycle: 10 },
+        { id: 4, name: 'Internet', cost: 30, duration: 12, cycle: 10 },
+    ],
     status: 'idle',
     error: null,
-    monthlyTotal: 0,
-    yearlyTotal: 0,
+    monthlyTotal: 0, // Will be computed based on the contracts array
+    yearlyTotal: 0, // Will be computed based on the contracts array
 };
 
 export const fetchContracts = createAsyncThunk('contracts/fetchContracts', async () => {
@@ -31,7 +40,8 @@ export const fetchContracts = createAsyncThunk('contracts/fetchContracts', async
 });
 
 export const addContract = createAsyncThunk('contracts/addContract', async (contract: Contract) => {
-    const response = await axios.post('/api/contracts', contract);
+    console.log("called in contract slice")
+    const response = await axios.post(url, contract);
     return response.data;
 });
 
@@ -40,7 +50,7 @@ export const updateContract = createAsyncThunk('contracts/updateContract', async
     return response.data;
 });
 
-export const deleteContract = createAsyncThunk('contracts/deleteContract', async (id: string) => {
+export const deleteContract = createAsyncThunk('contracts/deleteContract', async (id: number) => {
     await axios.delete(`/api/contracts/${id}`);
     return id;
 });
@@ -56,7 +66,7 @@ const contractsSlice = createSlice({
                 state.monthlyTotal = state.contracts.reduce((total, contract) => total + contract.cost, 0);
                 state.yearlyTotal = state.monthlyTotal * 12;
             })
-            // Implement other cases for add, update, and delete based on the API's response structure
+            // Cases for add, update, and delete based on the API's response structure
             .addCase(addContract.fulfilled, (state, action) => {
                 state.contracts.push(action.payload);
                 state.monthlyTotal += action.payload.cost;
@@ -83,3 +93,4 @@ const contractsSlice = createSlice({
 });
 
 export default contractsSlice.reducer;
+export type {Contract};
