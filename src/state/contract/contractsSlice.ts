@@ -35,7 +35,7 @@ const initialState: ContractsState = {
 };
 
 export const fetchContracts = createAsyncThunk('contracts/fetchContracts', async () => {
-    const response = await axios.get('/api/contracts');
+    const response = await axios.get(url);
     return response.data;
 });
 
@@ -46,12 +46,13 @@ export const addContract = createAsyncThunk('contracts/addContract', async (cont
 });
 
 export const updateContract = createAsyncThunk('contracts/updateContract', async (contract: Contract) => {
-    const response = await axios.put(`/api/contracts/${contract.id}`, contract);
+    console.log("red");
+    const response = await axios.put(`${url}/${contract.id}`, contract);
     return response.data;
 });
 
 export const deleteContract = createAsyncThunk('contracts/deleteContract', async (id: number) => {
-    await axios.delete(`/api/contracts/${id}`);
+    await axios.delete(`${url}/${id}`);
     return id;
 });
 
