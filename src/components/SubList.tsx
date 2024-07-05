@@ -61,23 +61,26 @@ function SubList() {
 
   };
 
-  return (
-    <Box p={5} bg="gray.100" boxShadow="md" borderRadius="lg">
-      <Flex justifyContent="space-between" alignItems="center" mb={4}>
-        <Text fontSize="xl" fontWeight="bold">Subscriptions</Text>
-        {/* For adding a new contract */}
-        <IconButton
-          aria-label="Add new item"
-          icon={<FaPlus />}
-          isRound
-          size="lg"
-          colorScheme="green"
-          onClick={handleAddClick}
-        />
-      </Flex>
-      
-      {/* This modal form is opened for editing or for creating a new contract*/}
-      <Modal isOpen={isOpen} onClose={onClose}>
+  // Calculate total cost per month and per year
+const totalMonthlyCost = subscriptions.reduce((acc, sub) => acc + sub.cost, 0);
+const totalYearlyCost = totalMonthlyCost * 12;
+
+return (
+  <Box p={5} bg="gray.100" boxShadow="md" borderRadius="lg">
+    <Flex justifyContent="space-between" alignItems="center" mb={4}>
+      <Text fontSize="xl" fontWeight="bold">Subscriptions</Text>
+      <IconButton
+        aria-label="Add new item"
+        icon={<FaPlus />}
+        isRound
+        size="lg"
+        colorScheme="green"
+        onClick={handleAddClick}
+      />
+    </Flex>
+
+    {/* This modal form is opened for editing or for creating a new contract*/}
+    <Modal isOpen={isOpen} onClose={onClose}>
         <ModalOverlay />
         <ModalContent> 
           <ModalHeader>{currentSubscription && currentSubscription.id > subscriptions.length ? 'Add New Subscription' : 'Edit Subscription'}</ModalHeader>
@@ -145,8 +148,10 @@ function SubList() {
           </ListItem>
         ))}
       </List>
-    </Box>
-  );
-}
 
+      <Text mb={4}>Total Monthly Cost: {totalMonthlyCost} CHF</Text>
+      <Text mb={4}>Total Yearly Cost: {totalYearlyCost} CHF</Text>
+    </Box>
+);
+}
 export default SubList;
