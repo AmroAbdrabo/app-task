@@ -74,7 +74,9 @@ const contractsSlice = createSlice({
                 state.yearlyTotal = state.monthlyTotal * 12;
             })
             .addCase(updateContract.fulfilled, (state, action) => {
-                const index = state.contracts.findIndex(c => c.id === action.payload.id);
+                console.log("Payload is", action.payload)
+                const index = state.contracts.findIndex(c => c.id === action.payload.id); // ID somehow gets converted into string when the object is passed into Dispatch
+                
                 if (index !== -1) {
                     state.monthlyTotal -= state.contracts[index].cost;
                     state.contracts[index] = action.payload;

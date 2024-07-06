@@ -1,25 +1,23 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   Box, List, ListItem, Flex, IconButton, Text, useColorModeValue,
   Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton, ModalBody, ModalFooter,
   Button, FormControl, FormLabel, Input, useDisclosure
 } from '@chakra-ui/react';
 import { useSelector, useDispatch } from 'react-redux';
-import { FaPlus, FaTrash } from 'react-icons/fa'; // Include FaTrash for the delete icon
+import { FaPlus, FaTrash } from 'react-icons/fa';
 import { AppDispatch } from '../state/store';
-import contractsSlice, { addContract, deleteContract, updateContract } from '../state/contract/contractsSlice';
-import {Contract} from '../state/contract/contractsSlice';
+import {Contract, addContract, deleteContract, updateContract } from '../state/contract/contractsSlice';
 import { RootState } from '../state/store';
 
 function SubList() {
-  const subscriptionsRedux = useSelector((state: RootState) => state.contracts.contracts); 
-  // Initialize subscriptions with subscriptionsRedux
-  const [subscriptions, setSubscriptions] = useState(subscriptionsRedux);
-  
-  const { isOpen, onOpen, onClose } = useDisclosure();
-  const [currentSubscription, setCurrentSubscription] = useState<Contract | null>(null);
-  const bgHover = useColorModeValue("gray.200", "gray.700");
+  // Directly using Redux store
+  const subscriptions = useSelector((state: RootState) => state.contracts.contracts);
   const dispatch = useDispatch<AppDispatch>();
+  const { isOpen, onOpen, onClose } = useDisclosure();
+  const [currentSubscription, setCurrentSubscription] = React.useState<Contract>();
+  const bgHover = useColorModeValue("gray.200", "gray.700");
+
 
   const handleAddClick = () => {
     // In reality this id should be set to a long random blob, but we keep it simple for this example 
@@ -27,14 +25,14 @@ function SubList() {
     onOpen();
   };
 
-  const handleItemClick = (subscription : any) => {
-    setCurrentSubscription({ ...subscription }); // Edit existing subscription
+  const handleItemClick = (subscription: Contract) => {
+    setCurrentSubscription({ ...subscription });
     onOpen();
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>, field: string) => {
     if (currentSubscription) {
-      setCurrentSubscription({ ...currentSubscription, [field]: e.target.value }); // modify the fields of the subscription
+      setCurrentSubscription({ ...currentSubscription, [field]: e.target.value });
     }
   };
 
@@ -42,30 +40,22 @@ function SubList() {
     if (currentSubscription) {
       // Case for adding a new subscription 
       if (currentSubscription.id > subscriptions.length) {
-        setSubscriptions([...subscriptions, currentSubscription]);
-        // Propagate changes to redux store
         dispatch(addContract(currentSubscription));
       } else {
-        // Case for updating an existing subscription
-        setSubscriptions(subscriptions.map(sub => sub.id === currentSubscription.id ? currentSubscription : sub));
-        dispatch(updateContract(currentSubscription))
+        dispatch(updateContract(currentSubscription));
       }
     }
     onClose();
   };
 
-  const handleDelete = (id:number) => {
-    // removes it from the subscriptions state
-    setSubscriptions(subscriptions.filter(sub => sub.id !== id));
-    dispatch(deleteContract(id))
-
+  const handleDelete = (id: number) => {
+    dispatch(deleteContract(id));
   };
 
-  // Calculate total cost per month and per year
-const totalMonthlyCost = subscriptions.reduce((acc, sub) => acc + sub.cost, 0);
-const totalYearlyCost = totalMonthlyCost * 12;
+  const totalMonthlyCost = subscriptions.reduce((acc, sub) => acc + sub.cost, 0);
+  const totalYearlyCost = totalMonthlyCost * 12;
 
-return (
+  return (
   <Box p={5} bg="gray.100" boxShadow="md" borderRadius="lg">
     <Flex justifyContent="space-between" alignItems="center" mb={4}>
       <Text fontSize="xl" fontWeight="bold">Subscriptions</Text>
