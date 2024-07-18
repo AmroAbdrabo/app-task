@@ -1,15 +1,14 @@
-// /contract/contractsSlice.ts
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import axios from 'axios';
 
-const port = 5000; // Port number of Flask API (make sure the API is running on this port, locally)
+const port = 5000;
 const url = `http://localhost:${port}/api/contracts`;
 
 interface Contract {
     id: number;
     name: string;
-    cost: number; // Monthly cost
-    duration: number; // Duration in months
+    cost: number;
+    duration: number;
     cycle: number;
 }
 
@@ -30,8 +29,8 @@ const initialState: ContractsState = {
     ],
     status: 'idle',
     error: null,
-    monthlyTotal: 0, // Will be computed based on the contracts array
-    yearlyTotal: 0, // Will be computed based on the contracts array
+    monthlyTotal: 220,
+    yearlyTotal: 220*12,
 };
 
 export const fetchContracts = createAsyncThunk('contracts/fetchContracts', async () => {
@@ -40,13 +39,11 @@ export const fetchContracts = createAsyncThunk('contracts/fetchContracts', async
 });
 
 export const addContract = createAsyncThunk('contracts/addContract', async (contract: Contract) => {
-    console.log("called in contract slice")
     const response = await axios.post(url, contract);
     return response.data;
 });
 
 export const updateContract = createAsyncThunk('contracts/updateContract', async (contract: Contract) => {
-    console.log("red");
     const response = await axios.put(`${url}/${contract.id}`, contract);
     return response.data;
 });
@@ -60,29 +57,53 @@ const contractsSlice = createSlice({
     name: 'contracts',
     initialState,
     reducers: {},
-    extraReducers(builder) {
+    extraReducers: (builder) => {
         builder
+            .addCase(fetchContracts.pending, (state) => {
+                state.status = 'loading';
+            })
             .addCase(fetchContracts.fulfilled, (state, action) => {
                 state.contracts = action.payload;
                 state.monthlyTotal = state.contracts.reduce((total, contract) => total + contract.cost, 0);
                 state.yearlyTotal = state.monthlyTotal * 12;
+                state.status = 'succeeded';
             })
-            // Cases for add, update, and delete based on the API's response structure
+            .addCase(fetchContracts.rejected, (state, action) => {
+                state.status = 'failed';
+                state.error = action.error.message || 'Failed to fetch contracts';
+            })
+            .addCase(addContract.pending, (state) => {
+                state.status = 'loading';
+            })
             .addCase(addContract.fulfilled, (state, action) => {
                 state.contracts.push(action.payload);
                 state.monthlyTotal += action.payload.cost;
                 state.yearlyTotal = state.monthlyTotal * 12;
+                state.status = 'succeeded';
+            })
+            .addCase(addContract.rejected, (state, action) => {
+                state.status = 'failed';
+                state.error = action.error.message || 'Failed to add contract';
+            })
+            .addCase(updateContract.pending, (state) => {
+                state.status = 'loading';
             })
             .addCase(updateContract.fulfilled, (state, action) => {
-                console.log("Payload is", action.payload)
-                const index = state.contracts.findIndex(c => c.id === action.payload.id); // ID somehow gets converted into string when the object is passed into Dispatch
-                
+                const index = state.contracts.findIndex(c => c.id === action.payload.id);
                 if (index !== -1) {
                     state.monthlyTotal -= state.contracts[index].cost;
                     state.contracts[index] = action.payload;
                     state.monthlyTotal += action.payload.cost;
                     state.yearlyTotal = state.monthlyTotal * 12;
                 }
+                state.status = 'succeeded';
+            })
+            .addCase(updateContract.rejected, (state, action) => {
+                state.status = 'failed';
+                state.error = action.error.message || 'Failed to update contract';
+            })
+            .addCase(deleteContract.pending, (state) => {
+                state.status = 'loading';
             })
             .addCase(deleteContract.fulfilled, (state, action) => {
                 const index = state.contracts.findIndex(c => c.id === action.payload);
@@ -91,9 +112,14 @@ const contractsSlice = createSlice({
                     state.contracts.splice(index, 1);
                     state.yearlyTotal = state.monthlyTotal * 12;
                 }
+                state.status = 'succeeded';
+            })
+            .addCase(deleteContract.rejected, (state, action) => {
+                state.status = 'failed';
+                state.error = action.error.message || 'Failed to delete contract';
             });
     },
 });
 
 export default contractsSlice.reducer;
-export type {Contract};
+export type { Contract };

@@ -7,26 +7,22 @@ import {
 import { useSelector, useDispatch } from 'react-redux';
 import { FaPlus, FaTrash } from 'react-icons/fa';
 import { AppDispatch } from '../state/store';
-import {Contract, addContract, deleteContract, updateContract } from '../state/contract/contractsSlice';
+import { Contract, addContract, deleteContract, updateContract } from '../state/contract/contractsSlice';
 import { RootState } from '../state/store';
 
 function SubList() {
   // Directly using Redux store
-  const subscriptions = useSelector((state: RootState) => state.contracts.contracts);
+  const { contracts: subscriptions, monthlyTotal, yearlyTotal, status } = useSelector((state: RootState) => state.contracts);
   const dispatch = useDispatch<AppDispatch>();
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [currentSubscription, setCurrentSubscription] = React.useState<Contract>();
   const bgHover = useColorModeValue("gray.200", "gray.700");
-  const [isValidCycle, setIsValidCycle] = React.useState(true);
-
 
   const handleAddClick = () => {
-    // generate a random ID
-    const randomId = Math.floor(Math.random() * 1000000); // Produces a random number up to 1,000,000
-
-    setCurrentSubscription({ id: randomId, name: '', cost: 0, duration: 0, cycle: 0 }); // Prepare new Subscription
+    const randomId = Math.floor(Math.random() * 1000000);
+    setCurrentSubscription({ id: randomId, name: '', cost: 0, duration: 0, cycle: 0 });
     onOpen();
-};
+  };
 
   const handleItemClick = (subscription: Contract) => {
     setCurrentSubscription({ ...subscription });
@@ -35,21 +31,19 @@ function SubList() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>, field: string) => {
     const value = e.target.value;
-    if (field === "cost"){
+     // For the numerical fields, make sure that the field is a positive integer
+    if (field === "cost" || field === "cycle" || field === "duration"){
       if (! (/^[1-9]\d*$/.test(value))) {
-        //console.log("error in input");
         return;
       }
     }
     if (currentSubscription) {
       setCurrentSubscription({ ...currentSubscription, [field]: e.target.value });
     }
-    
   };
 
   const handleSubmit = () => {
     if (currentSubscription) {
-      // Case for adding a new subscription 
       if (currentSubscription.id > subscriptions.length) {
         dispatch(addContract(currentSubscription));
       } else {
@@ -63,25 +57,22 @@ function SubList() {
     dispatch(deleteContract(id));
   };
 
-  const totalMonthlyCost = subscriptions.reduce((acc, sub) => acc + sub.cost, 0);
-  const totalYearlyCost = totalMonthlyCost * 12;
-
   return (
-  <Box p={5} bg="gray.100" boxShadow="md" borderRadius="lg">
-    <Flex justifyContent="space-between" alignItems="center" mb={4}>
-      <Text fontSize="xl" fontWeight="bold">Subscriptions</Text>
-      <IconButton
-        aria-label="Add new item"
-        icon={<FaPlus />}
-        isRound
-        size="lg"
-        colorScheme="green"
-        onClick={handleAddClick}
-      />
-    </Flex>
+    <Box p={5} bg="gray.100" boxShadow="md" borderRadius="lg">
+      <Flex justifyContent="space-between" alignItems="center" mb={4}>
+        <Text fontSize="xl" fontWeight="bold">Subscriptions</Text>
+        <IconButton
+          aria-label="Add new item"
+          icon={<FaPlus />}
+          isRound
+          size="lg"
+          colorScheme="green"
+          onClick={handleAddClick}
+        />
+      </Flex>
 
-    {/* This modal form is opened for editing or for creating a new contract*/}
-    <Modal isOpen={isOpen} onClose={onClose}>
+       {/* This modal form is opened for editing or for creating a new contract*/}
+      <Modal isOpen={isOpen} onClose={onClose}>
         <ModalOverlay />
         <ModalContent> 
           <ModalHeader>{currentSubscription && currentSubscription.id > subscriptions.length ? 'Add New Subscription' : 'Edit Subscription'}</ModalHeader>
@@ -141,7 +132,7 @@ function SubList() {
                 size="sm"
                 colorScheme="red"
                 onClick={(e) => {
-                  e.stopPropagation(); // Prevent listItem click from firing
+                  e.stopPropagation();
                   handleDelete(sub.id);
                 }}
               />
@@ -150,9 +141,10 @@ function SubList() {
         ))}
       </List>
 
-      <Text mb={4}>Total Monthly Cost: {totalMonthlyCost} CHF</Text>
-      <Text mb={4}>Total Yearly Cost: {totalYearlyCost} CHF</Text>
+      <Text mb={4}>Total Monthly Cost: {monthlyTotal} CHF</Text>
+      <Text mb={4}>Total Yearly Cost: {yearlyTotal} CHF</Text>
+      <Text mb={10}>Status: {status}</Text>
     </Box>
-);
+  );
 }
 export default SubList;
