@@ -17,13 +17,16 @@ function SubList() {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [currentSubscription, setCurrentSubscription] = React.useState<Contract>();
   const bgHover = useColorModeValue("gray.200", "gray.700");
+  const [isValidCycle, setIsValidCycle] = React.useState(true);
 
 
   const handleAddClick = () => {
-    // In reality this id should be set to a long random blob, but we keep it simple for this example 
-    setCurrentSubscription({ id: subscriptions.length + 1, name: '',  cost: 0, duration:0, cycle:0 }); // Prepare new Subscription
+    // generate a random ID
+    const randomId = Math.floor(Math.random() * 1000000); // Produces a random number up to 1,000,000
+
+    setCurrentSubscription({ id: randomId, name: '', cost: 0, duration: 0, cycle: 0 }); // Prepare new Subscription
     onOpen();
-  };
+};
 
   const handleItemClick = (subscription: Contract) => {
     setCurrentSubscription({ ...subscription });
@@ -31,9 +34,17 @@ function SubList() {
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>, field: string) => {
+    const value = e.target.value;
+    if (field === "cost"){
+      if (! (/^[1-9]\d*$/.test(value))) {
+        //console.log("error in input");
+        return;
+      }
+    }
     if (currentSubscription) {
       setCurrentSubscription({ ...currentSubscription, [field]: e.target.value });
     }
+    
   };
 
   const handleSubmit = () => {
