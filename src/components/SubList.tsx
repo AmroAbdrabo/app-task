@@ -5,52 +5,57 @@ import {
   Button, FormControl, FormLabel, Input, useDisclosure
 } from '@chakra-ui/react';
 import { useSelector, useDispatch } from 'react-redux';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { FaPlus, FaTrash } from 'react-icons/fa';
+import { contractSchema } from '../schemas/contractSchema';
 import { AppDispatch } from '../state/store';
 import { Contract, addContract, deleteContract, updateContract } from '../state/contract/contractsSlice';
 import { RootState } from '../state/store';
 
 function SubList() {
-  // Directly using Redux store
   const { contracts: subscriptions, monthlyTotal, yearlyTotal, status } = useSelector((state: RootState) => state.contracts);
   const dispatch = useDispatch<AppDispatch>();
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [currentSubscription, setCurrentSubscription] = React.useState<Contract>();
+  const { register, handleSubmit, reset, formState: { errors } } = useForm<Contract>({
+    resolver: zodResolver(contractSchema)
+  });
   const bgHover = useColorModeValue("gray.200", "gray.700");
 
   const handleAddClick = () => {
+    // Create random blob id and initialize empty values
     const randomId = Math.floor(Math.random() * 1000000);
-    setCurrentSubscription({ id: randomId, name: '', cost: 0, duration: 0, cycle: 0 });
+    reset({
+      id: randomId,
+      name: '',
+      cost: 0,
+      duration: 0,
+      cycle: 0
+    });
     onOpen();
   };
 
   const handleItemClick = (subscription: Contract) => {
-    setCurrentSubscription({ ...subscription });
+    // The current subscription is the one that will be edited, which has just been clicked
+    setCurrentSubscription(subscription);
+    reset(subscription);
     onOpen();
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>, field: string) => {
-    const value = e.target.value;
-     // For the numerical fields, make sure that the field is a positive integer
-    if (field === "cost" || field === "cycle" || field === "duration"){
-      if (! (/^[1-9]\d*$/.test(value))) {
-        return;
-      }
-    }
-    if (currentSubscription) {
-      setCurrentSubscription({ ...currentSubscription, [field]: e.target.value });
-    }
-  };
-
-  const handleSubmit = () => {
-    if (currentSubscription) {
-      if (currentSubscription.id > subscriptions.length) {
-        dispatch(addContract(currentSubscription));
-      } else {
-        dispatch(updateContract(currentSubscription));
-      }
+  const onSubmit = (data: Contract) => {
+    if (!currentSubscription) {
+      // If new subscription, create random blob
+      const randomId = Math.floor(Math.random() * 1000000);
+      data.id = randomId; 
+      dispatch(addContract(data));
+    } else if (currentSubscription){
+        // else, take all data from form and paste into current subscription so as to override current subscription's values
+        let curSub = {...currentSubscription, ...data}
+        dispatch(updateContract(curSub));
     }
     onClose();
+    setCurrentSubscription(undefined);
   };
 
   const handleDelete = (id: number) => {
@@ -71,40 +76,44 @@ function SubList() {
         />
       </Flex>
 
-       {/* This modal form is opened for editing or for creating a new contract*/}
+      {/* Modal form for creating and editing a subscription */}
       <Modal isOpen={isOpen} onClose={onClose}>
         <ModalOverlay />
         <ModalContent> 
-          <ModalHeader>{currentSubscription && currentSubscription.id > subscriptions.length ? 'Add New Subscription' : 'Edit Subscription'}</ModalHeader>
+          <ModalHeader>Edit Subscription</ModalHeader>
           <ModalCloseButton />
-          <ModalBody pb={6}>
-            <FormControl>
+          <ModalBody pb={6} as="form" onSubmit={handleSubmit(onSubmit)}>
+            <FormControl isInvalid={!!errors.name}>
               <FormLabel>Name</FormLabel>
-              <Input placeholder="Name" value={currentSubscription?.name || ''} onChange={(e) => handleChange(e, 'name')} />
+              <Input placeholder="Name" {...register('name')} />
+              <Text color="red.500">{errors.name?.message}</Text>
             </FormControl>
-            <FormControl mt={4}>
+            <FormControl mt={4} isInvalid={!!errors.cost}>
               <FormLabel>Cost</FormLabel>
-              <Input placeholder="Cost" value={currentSubscription?.cost || ''} onChange={(e) => handleChange(e, 'cost')} />
+              <Input placeholder="Cost"  type="number" {...register('cost')}  />
+              <Text color="red.500">{errors.cost?.message}</Text>
             </FormControl>
-            <FormControl mt={4}>
+            <FormControl mt={4} isInvalid={!!errors.duration}>
               <FormLabel>Duration</FormLabel>
-              <Input placeholder="Duration" value={currentSubscription?.duration || ''} onChange={(e) => handleChange(e, 'duration')} />
+              <Input placeholder="Duration"  type="number" {...register('duration', { valueAsNumber: true })}  />
+              <Text color="red.500">{errors.duration?.message}</Text>
             </FormControl>
-            <FormControl mt={4}>
+            <FormControl mt={4} isInvalid={!!errors.cycle}>
               <FormLabel>Cycle</FormLabel>
-              <Input placeholder="Payment Cycle" value={currentSubscription?.cycle || ''} onChange={(e) => handleChange(e, 'cycle')} />
+              <Input placeholder="Payment Cycle"  type="number" {...register('cycle', { valueAsNumber: true })}  />
+              <Text color="red.500">{errors.cycle?.message}</Text>
             </FormControl>
+            <ModalFooter>
+              <Button colorScheme="blue" mr={3} type="submit">
+                Save
+              </Button>
+              <Button onClick={onClose}>Cancel</Button>
+            </ModalFooter>
           </ModalBody>
-          <ModalFooter>
-            <Button colorScheme="blue" mr={3} onClick={handleSubmit}>
-              Save
-            </Button>
-            <Button onClick={onClose}>Cancel</Button>
-          </ModalFooter>
         </ModalContent>
       </Modal>
 
-      {/* Display the contracts */}
+      {/* Display list of subscriptions */}
       <List spacing={3}>
         {subscriptions.map((sub) => (
           <ListItem 
@@ -147,4 +156,5 @@ function SubList() {
     </Box>
   );
 }
+
 export default SubList;
