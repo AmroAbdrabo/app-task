@@ -5,104 +5,115 @@ import {
   Button, FormControl, FormLabel, Input, useDisclosure
 } from '@chakra-ui/react';
 import { useSelector, useDispatch } from 'react-redux';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { FaPlus, FaTrash } from 'react-icons/fa';
+import { contractSchema } from '../schemas/contractSchema';
 import { AppDispatch } from '../state/store';
-import {Contract, addContract, deleteContract, updateContract } from '../state/contract/contractsSlice';
+import { Contract, addContract, deleteContract, updateContract } from '../state/contract/contractsSlice';
 import { RootState } from '../state/store';
 
 function SubList() {
-  // Directly using Redux store
-  const subscriptions = useSelector((state: RootState) => state.contracts.contracts);
+  const { contracts: subscriptions, monthlyTotal, yearlyTotal, status } = useSelector((state: RootState) => state.contracts);
   const dispatch = useDispatch<AppDispatch>();
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [currentSubscription, setCurrentSubscription] = React.useState<Contract>();
+  const { register, handleSubmit, reset, formState: { errors } } = useForm<Contract>({
+    resolver: zodResolver(contractSchema)
+  });
   const bgHover = useColorModeValue("gray.200", "gray.700");
 
-
   const handleAddClick = () => {
-    // In reality this id should be set to a long random blob, but we keep it simple for this example 
-    setCurrentSubscription({ id: subscriptions.length + 1, name: '',  cost: 0, duration:0, cycle:0 }); // Prepare new Subscription
+    // Create random blob id and initialize empty values
+    const randomId = Math.floor(Math.random() * 1000000);
+    reset({
+      id: randomId,
+      name: '',
+      cost: 0,
+      duration: 0,
+      cycle: 0
+    });
     onOpen();
   };
 
   const handleItemClick = (subscription: Contract) => {
-    setCurrentSubscription({ ...subscription });
+    // The current subscription is the one that will be edited, which has just been clicked
+    setCurrentSubscription(subscription);
+    reset(subscription);
     onOpen();
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>, field: string) => {
-    if (currentSubscription) {
-      setCurrentSubscription({ ...currentSubscription, [field]: e.target.value });
-    }
-  };
-
-  const handleSubmit = () => {
-    if (currentSubscription) {
-      // Case for adding a new subscription 
-      if (currentSubscription.id > subscriptions.length) {
-        dispatch(addContract(currentSubscription));
-      } else {
-        dispatch(updateContract(currentSubscription));
-      }
+  const onSubmit = (data: Contract) => {
+    if (!currentSubscription) {
+      // If new subscription, create random blob
+      const randomId = Math.floor(Math.random() * 1000000);
+      data.id = randomId; 
+      dispatch(addContract(data));
+    } else if (currentSubscription){
+        // else, take all data from form and paste into current subscription so as to override current subscription's values
+        let curSub = {...currentSubscription, ...data}
+        dispatch(updateContract(curSub));
     }
     onClose();
+    setCurrentSubscription(undefined);
   };
 
   const handleDelete = (id: number) => {
     dispatch(deleteContract(id));
   };
 
-  const totalMonthlyCost = subscriptions.reduce((acc, sub) => acc + sub.cost, 0);
-  const totalYearlyCost = totalMonthlyCost * 12;
-
   return (
-  <Box p={5} bg="gray.100" boxShadow="md" borderRadius="lg">
-    <Flex justifyContent="space-between" alignItems="center" mb={4}>
-      <Text fontSize="xl" fontWeight="bold">Subscriptions</Text>
-      <IconButton
-        aria-label="Add new item"
-        icon={<FaPlus />}
-        isRound
-        size="lg"
-        colorScheme="green"
-        onClick={handleAddClick}
-      />
-    </Flex>
+    <Box p={5} bg="gray.100" boxShadow="md" borderRadius="lg">
+      <Flex justifyContent="space-between" alignItems="center" mb={4}>
+        <Text fontSize="xl" fontWeight="bold">Subscriptions</Text>
+        <IconButton
+          aria-label="Add new item"
+          icon={<FaPlus />}
+          isRound
+          size="lg"
+          colorScheme="green"
+          onClick={handleAddClick}
+        />
+      </Flex>
 
-    {/* This modal form is opened for editing or for creating a new contract*/}
-    <Modal isOpen={isOpen} onClose={onClose}>
+      {/* Modal form for creating and editing a subscription */}
+      <Modal isOpen={isOpen} onClose={onClose}>
         <ModalOverlay />
         <ModalContent> 
-          <ModalHeader>{currentSubscription && currentSubscription.id > subscriptions.length ? 'Add New Subscription' : 'Edit Subscription'}</ModalHeader>
+          <ModalHeader>Edit Subscription</ModalHeader>
           <ModalCloseButton />
-          <ModalBody pb={6}>
-            <FormControl>
+          <ModalBody pb={6} as="form" onSubmit={handleSubmit(onSubmit)}>
+            <FormControl isInvalid={!!errors.name}>
               <FormLabel>Name</FormLabel>
-              <Input placeholder="Name" value={currentSubscription?.name || ''} onChange={(e) => handleChange(e, 'name')} />
+              <Input placeholder="Name" {...register('name')} />
+              <Text color="red.500">{errors.name?.message}</Text>
             </FormControl>
-            <FormControl mt={4}>
+            <FormControl mt={4} isInvalid={!!errors.cost}>
               <FormLabel>Cost</FormLabel>
-              <Input placeholder="Cost" value={currentSubscription?.cost || ''} onChange={(e) => handleChange(e, 'cost')} />
+              <Input placeholder="Cost"  type="number" {...register('cost')}  />
+              <Text color="red.500">{errors.cost?.message}</Text>
             </FormControl>
-            <FormControl mt={4}>
+            <FormControl mt={4} isInvalid={!!errors.duration}>
               <FormLabel>Duration</FormLabel>
-              <Input placeholder="Duration" value={currentSubscription?.duration || ''} onChange={(e) => handleChange(e, 'duration')} />
+              <Input placeholder="Duration"  type="number" {...register('duration', { valueAsNumber: true })}  />
+              <Text color="red.500">{errors.duration?.message}</Text>
             </FormControl>
-            <FormControl mt={4}>
+            <FormControl mt={4} isInvalid={!!errors.cycle}>
               <FormLabel>Cycle</FormLabel>
-              <Input placeholder="Payment Cycle" value={currentSubscription?.cycle || ''} onChange={(e) => handleChange(e, 'cycle')} />
+              <Input placeholder="Payment Cycle"  type="number" {...register('cycle', { valueAsNumber: true })}  />
+              <Text color="red.500">{errors.cycle?.message}</Text>
             </FormControl>
+            <ModalFooter>
+              <Button colorScheme="blue" mr={3} type="submit">
+                Save
+              </Button>
+              <Button onClick={onClose}>Cancel</Button>
+            </ModalFooter>
           </ModalBody>
-          <ModalFooter>
-            <Button colorScheme="blue" mr={3} onClick={handleSubmit}>
-              Save
-            </Button>
-            <Button onClick={onClose}>Cancel</Button>
-          </ModalFooter>
         </ModalContent>
       </Modal>
 
-      {/* Display the contracts */}
+      {/* Display list of subscriptions */}
       <List spacing={3}>
         {subscriptions.map((sub) => (
           <ListItem 
@@ -130,7 +141,7 @@ function SubList() {
                 size="sm"
                 colorScheme="red"
                 onClick={(e) => {
-                  e.stopPropagation(); // Prevent listItem click from firing
+                  e.stopPropagation();
                   handleDelete(sub.id);
                 }}
               />
@@ -139,9 +150,11 @@ function SubList() {
         ))}
       </List>
 
-      <Text mb={4}>Total Monthly Cost: {totalMonthlyCost} CHF</Text>
-      <Text mb={4}>Total Yearly Cost: {totalYearlyCost} CHF</Text>
+      <Text mb={4}>Total Monthly Cost: {monthlyTotal} CHF</Text>
+      <Text mb={4}>Total Yearly Cost: {yearlyTotal} CHF</Text>
+      <Text mb={10}>Status: {status}</Text>
     </Box>
-);
+  );
 }
+
 export default SubList;
